@@ -1,0 +1,33 @@
+{
+  "name": "web-scraping-examples",
+  "version": "1.0.0",
+  "description": "Web scraping examples for Node.js",
+  "main": "scraping-examples.js",
+  "scripts": {
+    "start": "node scraping-examples.js",
+    "test": "node test-scraper.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "puppeteer": "^21.0.0",
+    "playwright": "^1.40.0",
+    "jsdom": "^23.0.0",
+    "node-html-parser": "^6.1.0",
+    "tough-cookie": "^4.1.0",
+    "http-cookie-agent": "^5.0.0",
+    "proxy-agent": "^6.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  },
+  "keywords": [
+    "web-scraping",
+    "nodejs",
+    "cheerio",
+    "puppeteer",
+    "axios"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+} 
