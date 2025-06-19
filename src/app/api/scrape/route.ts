@@ -31,20 +31,18 @@ interface IPLData {
   liveMatch?: Match;
   upcomingMatches: Match[];
   pointsTable: PointsTableTeam[];
-  pointsTableRawData: string[][]; // 2D array of all table cell data
+  pointsTableRawData: string[][];
   recentMatches: Match[];
   lastUpdated: string;
 }
 
-// In-memory cache (in production, use Redis or similar)
 let cache: { data: IPLData | null; timestamp: number } = {
   data: null,
   timestamp: 0,
 };
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 5 * 60 * 1000; // 5 min
 
-// Mock data for development (replace with actual scraping in production)
 const getMockData = (): IPLData => ({
   liveMatch: {
     id: "live-1",
@@ -201,10 +199,8 @@ const getMockData = (): IPLData => ({
   lastUpdated: new Date().toISOString(),
 });
 
-// Helper function to add delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Alternative scraping function using Puppeteer (better for JavaScript-heavy sites)
 async function scrapeIPLDataWithPuppeteer(): Promise<IPLData> {
   let browser;
   try {
@@ -212,41 +208,37 @@ async function scrapeIPLDataWithPuppeteer(): Promise<IPLData> {
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
-    
+
     const page = await browser.newPage();
-    
+
     // Set user agent to avoid detection
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
-    
+
     // Navigate to the page
     await page.goto("https://www.iplt20.com/points-table/men", {
-      waitUntil: 'networkidle2', // Wait until network is idle
+      waitUntil: 'networkidle2',
       timeout: 30000
     });
-    
-    // Wait for the points table to load
+
     await page.waitForSelector('#pointsdata', { timeout: 15000 });
-    
-    // Additional wait to ensure all JavaScript has executed  
+
     await delay(3000);
-    
-    // Get the page content
+
     const content = await page.content();
     const $ = cheerio.load(content);
-    
-    // Extract points table data (same logic as before)
+
     const pointsTable: PointsTableTeam[] = [];
     const pointsTableData: string[][] = [];
 
     $('#pointsdata tr').each((index, element) => {
       const $row = $(element);
-      
+
       const rowData: string[] = [];
       $row.find('td').each((cellIndex, cellElement) => {
         const $cell = $(cellElement);
-        
+
         let cellText = '';
-        
+
         if ($cell.find('.ih-pt-cont').length > 0) {
           cellText = $cell.find('.ih-pt-cont').text().trim();
         }
@@ -260,10 +252,10 @@ async function scrapeIPLDataWithPuppeteer(): Promise<IPLData> {
         else {
           cellText = $cell.text().trim();
         }
-        
+
         rowData.push(cellText);
       });
-      
+
       if (rowData.length > 0 && rowData.some(cell => cell.length > 0)) {
         pointsTableData.push(rowData);
       }
@@ -311,136 +303,6 @@ async function scrapeIPLDataWithPuppeteer(): Promise<IPLData> {
   }
 }
 
-async function scrapeIPLData(): Promise<IPLData> {
-  const maxRetries = 3;
-  let lastError;
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      console.log(`Scraping attempt ${attempt}/${maxRetries}`);
-      
-      // Add initial delay to allow for any server-side processing
-      await delay(2000 * attempt); // Increasing delay for retries
-      
-      // Example: Scraping ESPN Cricinfo for IPL matches
-      const response = await axios.get(
-        "https://www.iplt20.com/points-table/men",
-        {
-          headers: {
-            "User-Agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Connection": "keep-alive",
-            "Upgrade-Insecure-Requests": "1",
-          },
-          timeout: 15000, // 15 second timeout (increased)
-        }
-      );
-
-    const $ = cheerio.load(response.data);
-    
-
-    // Example scraping logic (adjust selectors based on actual website structure)
-    const matches: Match[] = [];
-    const upcomingMatches: Match[] = [];
-    const recentMatches: Match[] = [];
-
-    // Scrape points table data from the tbody with id="pointsdata"
-    const pointsTable: PointsTableTeam[] = [];
-    const pointsTableData: string[][] = [];
-
-    // Find the tbody with id="pointsdata" and extract all rows
-    console.log($('.team0').text());
-    $('#pointsdata tr').each((index, element) => {
-      const $row = $(element);
-      
-      // Extract all cell data for 2D array
-      const rowData: string[] = [];
-      $row.find('td').each((cellIndex, cellElement) => {
-        const $cell = $(cellElement);
-        
-        // Handle different types of cell content
-        let cellText = '';
-        
-        // If cell contains team info with logo and name
-        if ($cell.find('.ih-pt-cont').length > 0) {
-          cellText = $cell.find('.ih-pt-cont').text().trim();
-        }
-        // If cell contains performance data (W/L/N indicators)
-        else if ($cell.find('.ih-pt-fb').length > 0) {
-          const performance: string[] = [];
-          $cell.find('.rf').each((perfIndex, perfElement) => {
-            performance.push($(perfElement).text().trim());
-          });
-          cellText = performance.join('');
-        }
-        // Regular text content
-        else {
-          cellText = $cell.text().trim();
-        }
-        
-        rowData.push(cellText);
-      });
-      
-      // Add row data to 2D array if it has content
-      if (rowData.length > 0 && rowData.some(cell => cell.length > 0)) {
-        pointsTableData.push(rowData);
-      }
-
-      // Also create structured PointsTableTeam objects
-      if (rowData.length >= 9) { // Ensure we have enough data
-        const position = parseInt(rowData[0]) || index + 1;
-        const teamName = rowData[2] || `Team ${index + 1}`;
-        const matches = parseInt(rowData[3]) || 0;
-        const won = parseInt(rowData[4]) || 0;
-        const lost = parseInt(rowData[5]) || 0;
-        const tied = parseInt(rowData[6]) || 0;
-        const netRunRate = rowData[7] || '0.000';
-        const points = parseInt(rowData[rowData.length - 2]) || 0; // Points is usually second to last
-
-        pointsTable.push({
-          position,
-          team: teamName,
-          matches,
-          won,
-          lost,
-          tied,
-          noResult: 0, // Not clearly present in the data structure
-          points,
-          netRunRate
-        });
-      }
-    });
-
-      return {
-        liveMatch: getMockData().liveMatch,
-        upcomingMatches: getMockData().upcomingMatches,
-        pointsTable:
-          pointsTable.length > 0 ? pointsTable : getMockData().pointsTable,
-        pointsTableRawData: pointsTableData, // Include the 2D array data
-        recentMatches: getMockData().recentMatches,
-        lastUpdated: new Date().toISOString(),
-      };
-    } catch (error) {
-      console.error(`Error scraping IPL data (attempt ${attempt}):`, error);
-      lastError = error;
-      
-      // If this is not the last attempt, continue to next iteration
-      if (attempt < maxRetries) {
-        console.log(`Retrying in ${3000 * attempt}ms...`);
-        await delay(3000 * attempt); // Wait before retrying
-        continue;
-      }
-    }
-  }
-
-  // If all attempts failed, fallback to mock data
-  console.error("All scraping attempts failed, using mock data:", lastError);
-  return getMockData();
-}
-
 export async function GET(request: NextRequest) {
   try {
     const now = Date.now();
@@ -456,10 +318,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Scrape fresh data - choose method based on query parameter
-    const data = usePuppeteer 
-      ? await scrapeIPLDataWithPuppeteer()
-      : await scrapeIPLData();
+    const data = scrapeIPLDataWithPuppeteer();
 
     // Update cache
     cache.data = data;
@@ -482,7 +341,6 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Clear cache endpoint
     cache.data = null;
     cache.timestamp = 0;
 

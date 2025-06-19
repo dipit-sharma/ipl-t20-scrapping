@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { NotificationData } from '@/types/ipl';
-import { Bell, X, Trophy, Target, Users, Calendar } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { NotificationData } from "@/types/ipl";
+import { Bell, X, Trophy, Target, Users, Calendar } from "lucide-react";
 
 interface NotificationToastProps {
   notification: NotificationData;
@@ -11,11 +11,11 @@ interface NotificationToastProps {
   duration?: number;
 }
 
-const NotificationToast: React.FC<NotificationToastProps> = ({ 
-  notification, 
-  onClose, 
-  autoClose = true, 
-  duration = 5000 
+const NotificationToast: React.FC<NotificationToastProps> = ({
+  notification,
+  onClose,
+  autoClose = true,
+  duration = 5000,
 }) => {
   const [isVisible, setIsVisible] = useState(true);
 
@@ -23,7 +23,7 @@ const NotificationToast: React.FC<NotificationToastProps> = ({
     if (autoClose) {
       const timer = setTimeout(() => {
         setIsVisible(false);
-        setTimeout(onClose, 300); // Wait for animation to complete
+        setTimeout(onClose, 300);
       }, duration);
 
       return () => clearTimeout(timer);
@@ -32,14 +32,14 @@ const NotificationToast: React.FC<NotificationToastProps> = ({
 
   const getIcon = () => {
     switch (notification.type) {
-      case 'wicket':
+      case "wicket":
         return <Target className="h-5 w-5" />;
-      case 'boundary':
+      case "boundary":
         return <Trophy className="h-5 w-5" />;
-      case 'milestone':
+      case "milestone":
         return <Users className="h-5 w-5" />;
-      case 'match_start':
-      case 'match_end':
+      case "match_start":
+      case "match_end":
         return <Calendar className="h-5 w-5" />;
       default:
         return <Bell className="h-5 w-5" />;
@@ -48,40 +48,44 @@ const NotificationToast: React.FC<NotificationToastProps> = ({
 
   const getColor = () => {
     switch (notification.type) {
-      case 'wicket':
-        return 'bg-red-500';
-      case 'boundary':
-        return 'bg-green-500';
-      case 'milestone':
-        return 'bg-blue-500';
-      case 'match_start':
-        return 'bg-purple-500';
-      case 'match_end':
-        return 'bg-orange-500';
+      case "wicket":
+        return "bg-red-500";
+      case "boundary":
+        return "bg-green-500";
+      case "milestone":
+        return "bg-blue-500";
+      case "match_start":
+        return "bg-purple-500";
+      case "match_end":
+        return "bg-orange-500";
       default:
-        return 'bg-gray-500';
+        return "bg-gray-500";
     }
   };
 
   if (!isVisible) return null;
 
   return (
-    <div className={`fixed top-4 right-4 z-50 max-w-sm w-full transition-all duration-300 ease-in-out transform ${
-      isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
-    }`}>
+    <div
+      className={`fixed top-4 right-4 z-50 max-w-sm w-full transition-all duration-300 ease-in-out transform ${
+        isVisible ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"
+      }`}
+    >
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className={`${getColor()} h-1 w-full`}></div>
-        
+
         <div className="p-4">
           <div className="flex items-start gap-3">
-            <div className={`${getColor()} text-white p-2 rounded-full flex-shrink-0`}>
+            <div
+              className={`${getColor()} text-white p-2 rounded-full flex-shrink-0`}
+            >
               {getIcon()}
             </div>
-            
+
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
                 <p className="text-sm font-medium text-gray-900 dark:text-white capitalize">
-                  {notification.type.replace('_', ' ')}
+                  {notification.type.replace("_", " ")}
                 </p>
                 <button
                   onClick={() => {
@@ -93,11 +97,11 @@ const NotificationToast: React.FC<NotificationToastProps> = ({
                   <X className="h-4 w-4" />
                 </button>
               </div>
-              
+
               <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
                 {notification.message}
               </p>
-              
+
               {notification.match && (
                 <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded p-2">
                   <div className="font-medium">
@@ -106,7 +110,7 @@ const NotificationToast: React.FC<NotificationToastProps> = ({
                   <div>{notification.match.venue}</div>
                 </div>
               )}
-              
+
               <div className="text-xs text-gray-400 mt-2">
                 {new Date(notification.timestamp).toLocaleTimeString()}
               </div>
@@ -118,7 +122,6 @@ const NotificationToast: React.FC<NotificationToastProps> = ({
   );
 };
 
-// Notification Manager Component
 interface NotificationManagerProps {
   notifications: NotificationData[];
   onRemoveNotification: (id: string) => void;
@@ -126,16 +129,16 @@ interface NotificationManagerProps {
 
 export const NotificationManager: React.FC<NotificationManagerProps> = ({
   notifications,
-  onRemoveNotification
+  onRemoveNotification,
 }) => {
   return (
     <div className="fixed top-0 right-0 z-50 p-4 space-y-2">
       {notifications.map((notification, index) => (
-        <div 
+        <div
           key={notification.id}
-          style={{ 
+          style={{
             transform: `translateY(${index * 10}px)`,
-            zIndex: 50 - index 
+            zIndex: 50 - index,
           }}
         >
           <NotificationToast
@@ -148,22 +151,23 @@ export const NotificationManager: React.FC<NotificationManagerProps> = ({
   );
 };
 
-// Hook for managing notifications
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
 
-  const addNotification = (notification: Omit<NotificationData, 'id' | 'timestamp'>) => {
+  const addNotification = (
+    notification: Omit<NotificationData, "id" | "timestamp">
+  ) => {
     const newNotification: NotificationData = {
       ...notification,
       id: Date.now().toString(),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
-    setNotifications(prev => [newNotification, ...prev.slice(0, 4)]); // Keep max 5 notifications
+    setNotifications((prev) => [newNotification, ...prev.slice(0, 4)]); // Keep max 5 notifications
   };
 
   const removeNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
   };
 
   const clearAll = () => {
@@ -174,8 +178,8 @@ export const useNotifications = () => {
     notifications,
     addNotification,
     removeNotification,
-    clearAll
+    clearAll,
   };
 };
 
-export default NotificationToast; 
+export default NotificationToast;
